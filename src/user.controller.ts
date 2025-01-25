@@ -1,4 +1,14 @@
-import { Controller, Get, Req, Request } from "./@nestjs/common";
+import {
+  Controller,
+  Get,
+  Req,
+  Request,
+  Query,
+  Headers,
+  Session,
+  Ip,
+  Param,
+} from "./@nestjs/common";
 import { Request as ExpressRequest } from "express";
 
 /**
@@ -20,5 +30,53 @@ export class UserController {
     console.log(req.path);
 
     return "Hello World!";
+  }
+  @Get("query")
+  handleQuery(@Request() request: any, @Query("id") id: string): string {
+    console.log("🚀 ~ UserController ~ handleQuery ~ id:", id);
+    console.log(request.query);
+
+    return "Hello World!";
+  }
+  @Get("headers")
+  handleHeader(
+    @Headers() headers: any,
+    @Headers("accept") accept: string
+  ): string {
+    console.log("🚀 ~ UserController ~ handleQuery ~ accept:", accept);
+    console.log("headers", headers);
+
+    return "Hello World!";
+  }
+  @Get("session")
+  handleSession(
+    @Session() session: any,
+    @Session("pageView") pageView: string
+  ): string {
+    console.log("🚀 ~ UserController ~ handleQuery ~ accept:", pageView);
+    console.log("session", session);
+    if (session.pageView) {
+      session.pageView++;
+    } else {
+      session.pageView = 1;
+    }
+
+    return "Hello World!" + session.pageView;
+  }
+  @Get("ip")
+  handleIP(@Ip() ip: any): string {
+    console.log("🚀 ~ UserController ~ handleQuery ~ ip:", ip);
+    return "Hello World!" + ip;
+  }
+  @Get(":username/info/:age")
+  getUseNameInfo(
+    @Param() param: any,
+    @Param("username") username: string,
+    @Param("age") age: number
+  ): string {
+    console.log("🚀 ~ UserController ~ handleQuery ~ param:", param);
+    console.log("🚀 ~ UserController ~ handleQuery ~ username:", username);
+    console.log("🚀 ~ UserController ~ handleQuery ~ age:", age);
+    return "Hello World!" + username + age;
   }
 }

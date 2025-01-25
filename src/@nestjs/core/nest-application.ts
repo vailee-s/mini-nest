@@ -14,6 +14,9 @@ export class NestApplication {
   private readonly app: Express = express();
   constructor(protected readonly module) {}
 
+  use(middleware: any) {
+    this.app.use(middleware);
+  }
   async init() {
     // 取出模块的控制器，然后做好路由的映射
     const controllers = Reflect.getMetadata("controllers", this.module) || [];
@@ -73,13 +76,22 @@ export class NestApplication {
     const paramsMetaData = Reflect.getMetadata("params", instance, methodName);
     console.log("🚀 ~ NestApplication ~ paramsMetaData:", paramsMetaData);
     return paramsMetaData.map((paramsMetaDataItem) => {
-      const { key } = paramsMetaDataItem;
+      const { key, data } = paramsMetaDataItem;
 
       switch (key) {
         case "Req":
         case "Request":
           return req;
-
+        case "Query":
+          return data ? req.query[data] : req.query;
+        case "Headers":
+          return data ? req.headers[data] : req.headers;
+        case "Session":
+          return data ? req.session[data] : req.session;
+        case "Ip":
+          return req.ip;
+        case "Param":
+          return data ? req.params[data] : req.params;
         default:
           return null;
       }
