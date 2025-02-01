@@ -12,7 +12,10 @@ import path from "path";
 export class NestApplication {
   // 在内部私有化一个Express实例
   private readonly app: Express = express();
-  constructor(protected readonly module) {}
+  constructor(protected readonly module) {
+    this.app.use(express.json()); //json格式请求体对象放在req.body中
+    this.app.use(express.urlencoded({ extended: true })); // form格式请求体对象放在req.body中
+  }
 
   use(middleware: any) {
     this.app.use(middleware);
@@ -55,7 +58,15 @@ export class NestApplication {
               next
             );
             const result = method.call(controller, ...args);
-            res.send(result);
+
+            // 判断controller里的methodName方法里有没使用@Res()， 如果有，则不返回数据需要自己处理返回
+            const responseMetadata = this.getRespomseMetadata(
+              controller,
+              methodName
+            );
+            if (!responseMetadata || responseMetadata?.data?.passthrough) {
+              res.send(result);
+            }
           }
         );
         // console.log(
@@ -66,6 +77,15 @@ export class NestApplication {
       }
     }
   }
+
+  private getRespomseMetadata(controller: any, methodName: string) {
+    const paramsMetaData =
+      Reflect.getMetadata("params", controller, methodName) || [];
+    return paramsMetaData.find((paramsMetaDataItem) => {
+      const { key } = paramsMetaDataItem;
+      return key === "Res" || key === "Response";
+    });
+  }
   private resolveParams(
     instance: any,
     methodName: string,
@@ -73,7 +93,8 @@ export class NestApplication {
     res: ExpressResponse,
     next: NextFunction
   ) {
-    const paramsMetaData = Reflect.getMetadata("params", instance, methodName);
+    const paramsMetaData =
+      Reflect.getMetadata("params", instance, methodName) || [];
     console.log("🚀 ~ NestApplication ~ paramsMetaData:", paramsMetaData);
     return paramsMetaData.map((paramsMetaDataItem) => {
       const { key, data } = paramsMetaDataItem;
@@ -92,6 +113,10 @@ export class NestApplication {
           return req.ip;
         case "Param":
           return data ? req.params[data] : req.params;
+        case "Body":
+          return data ? req.body[data] : req.body;
+        case "Response":
+          return res;
         default:
           return null;
       }

@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Req,
   Request,
   Query,
@@ -8,8 +9,13 @@ import {
   Session,
   Ip,
   Param,
+  Body,
+  Response,
 } from "./@nestjs/common";
-import { Request as ExpressRequest } from "express";
+import {
+  Request as ExpressRequest,
+  Response as ExpressResponse,
+} from "express";
 
 /**
  * @Controller 也是一个装饰器，用于定义控制器
@@ -78,5 +84,32 @@ export class UserController {
     console.log("🚀 ~ UserController ~ handleQuery ~ username:", username);
     console.log("🚀 ~ UserController ~ handleQuery ~ age:", age);
     return "Hello World!" + username + age;
+  }
+  @Get("star/ab*de")
+  handleWildcard(): string {
+    return "Hello World!";
+  }
+  @Post("create")
+  createUser(
+    @Body() createUserDto,
+    @Body("username") username: string
+  ): string {
+    console.log("create", createUserDto, username);
+
+    return "Hello World!";
+  }
+  @Post("response")
+  response(@Response() response: ExpressResponse): string {
+    console.log("create", response);
+    return "Hello World!";
+  }
+  @Post("passthrough")
+  passthrough(
+    @Response({ passthrough: true }) response: ExpressResponse
+  ): string {
+    // 只想在响应头中添加一个自定义的响应头，不影响框架的正常使用
+    response.setHeader("X-Custom-Header", "Hello World");
+    console.log("create", response);
+    return "Hello World!";
   }
 }
