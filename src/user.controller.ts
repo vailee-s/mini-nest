@@ -3,6 +3,8 @@ import {
   Get,
   Post,
   Redirect,
+  HttpCode,
+  Header,
   Req,
   Request,
   Query,
@@ -92,6 +94,10 @@ export class UserController {
     return "Hello World!";
   }
   @Post("create")
+  @HttpCode(200)
+  @Header("Cache-Control", "no-cache")
+  @Header("key1", "value1")
+  @Header("key2", "value2")
   createUser(
     @Body() createUserDto,
     @Body("username") username: string

@@ -48,6 +48,8 @@ export class NestApplication {
           "redirectStatusCode",
           method
         );
+        const statusCodeMetadata = Reflect.getMetadata("statusCode", method);
+        const headersMetadata = Reflect.getMetadata("headers", method);
 
         if (!httpMethod) continue;
         // 拼接路径
@@ -74,12 +76,21 @@ export class NestApplication {
                 redirectUrlMetadata
               );
             }
+            if (statusCodeMetadata) {
+              res.statusCode = statusCodeMetadata;
+            } else if (httpMethod === "POST") {
+              res.statusCode = 201;
+            }
+
             // 判断controller里的methodName方法里有没使用@Res()， 如果有，则不返回数据需要自己处理返回
             const responseMetadata = this.getRespomseMetadata(
               controller,
               methodName
             );
             if (!responseMetadata || responseMetadata?.data?.passthrough) {
+              headersMetadata.forEach(({ name, value }) => {
+                res.setHeader(name, value);
+              });
               res.send(result);
             }
           }
