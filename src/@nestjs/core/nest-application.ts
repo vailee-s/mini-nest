@@ -42,6 +42,12 @@ export class NestApplication {
         const httpMethod = Reflect.getMetadata("method", method);
         // 取得此函数上绑定的路径的元数据
         const pathMetadata = Reflect.getMetadata("path", method);
+        const redirectUrlMetadata = Reflect.getMetadata("redirectUrl", method);
+
+        const redirectStatusCodeMetadata = Reflect.getMetadata(
+          "redirectStatusCode",
+          method
+        );
 
         if (!httpMethod) continue;
         // 拼接路径
@@ -58,7 +64,16 @@ export class NestApplication {
               next
             );
             const result = method.call(controller, ...args);
-
+            if (result.url) {
+              return res.redirect(result.statusCode || 302, result.url);
+            }
+            // 判断controller里的methodName方法里有没使用@Redirect()， 如果有，则重定向
+            if (redirectUrlMetadata) {
+              return res.redirect(
+                redirectStatusCodeMetadata || 302,
+                redirectUrlMetadata
+              );
+            }
             // 判断controller里的methodName方法里有没使用@Res()， 如果有，则不返回数据需要自己处理返回
             const responseMetadata = this.getRespomseMetadata(
               controller,
@@ -81,9 +96,11 @@ export class NestApplication {
   private getRespomseMetadata(controller: any, methodName: string) {
     const paramsMetaData =
       Reflect.getMetadata("params", controller, methodName) || [];
-    return paramsMetaData.find((paramsMetaDataItem) => {
+
+    // 参数装饰器 existingParams中的data可能是空值，需要过滤掉
+    return paramsMetaData.filter(Boolean).find((paramsMetaDataItem) => {
       const { key } = paramsMetaDataItem;
-      return key === "Res" || key === "Response";
+      return key === "Res" || key === "Response" || key === "Next";
     });
   }
   private resolveParams(
@@ -94,7 +111,7 @@ export class NestApplication {
     next: NextFunction
   ) {
     const paramsMetaData =
-      Reflect.getMetadata("params", instance, methodName) || [];
+      Reflect.getMetadata("params", instance, methodName) ?? [];
     console.log("🚀 ~ NestApplication ~ paramsMetaData:", paramsMetaData);
     return paramsMetaData.map((paramsMetaDataItem) => {
       const { key, data } = paramsMetaDataItem;
@@ -116,7 +133,10 @@ export class NestApplication {
         case "Body":
           return data ? req.body[data] : req.body;
         case "Response":
+        case "Res":
           return res;
+        case "Next":
+          return next;
         default:
           return null;
       }

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Redirect,
   Req,
   Request,
   Query,
@@ -11,6 +12,7 @@ import {
   Param,
   Body,
   Response,
+  Next,
 } from "./@nestjs/common";
 import {
   Request as ExpressRequest,
@@ -111,5 +113,26 @@ export class UserController {
     response.setHeader("X-Custom-Header", "Hello World");
     console.log("create", response);
     return "Hello World!";
+  }
+  @Get("next")
+  next(@Next() next: Function) {
+    console.log("next");
+    next();
+  }
+  @Get("/redirect")
+  @Redirect("/user/req", 301)
+  handleRedirect() {
+    // return "Hello World!";
+  }
+  @Get("/redirect2")
+  @Redirect("/user/req", 301)
+  handleRedirect2(@Query("id") id: string) {
+    return {
+      url: `/user/req?id=${id}`,
+      statusCode: 301,
+      headers: {
+        id,
+      },
+    };
   }
 }
