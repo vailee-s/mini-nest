@@ -20,6 +20,7 @@ import {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from "express";
+import { User } from "./user.decorator";
 
 /**
  * @Controller 也是一个装饰器，用于定义控制器
@@ -140,5 +141,9 @@ export class UserController {
         id,
       },
     };
+  }
+  @Get("/custom")
+  customParamDecorator(@User() user) {
+    return user;
   }
 }

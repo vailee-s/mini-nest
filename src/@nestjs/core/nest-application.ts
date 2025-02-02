@@ -15,6 +15,10 @@ export class NestApplication {
   constructor(protected readonly module) {
     this.app.use(express.json()); //json格式请求体对象放在req.body中
     this.app.use(express.urlencoded({ extended: true })); // form格式请求体对象放在req.body中
+    this.app.use((req, res, next) => {
+      req.user = { name: "zhangsan", age: 18 };
+      next();
+    });
   }
 
   use(middleware: any) {
@@ -49,7 +53,7 @@ export class NestApplication {
           method
         );
         const statusCodeMetadata = Reflect.getMetadata("statusCode", method);
-        const headersMetadata = Reflect.getMetadata("headers", method);
+        const headersMetadata = Reflect.getMetadata("headers", method) ?? [];
 
         if (!httpMethod) continue;
         // 拼接路径
@@ -66,7 +70,7 @@ export class NestApplication {
               next
             );
             const result = method.call(controller, ...args);
-            if (result.url) {
+            if (result?.url) {
               return res.redirect(result.statusCode || 302, result.url);
             }
             // 判断controller里的methodName方法里有没使用@Redirect()， 如果有，则重定向
@@ -125,8 +129,18 @@ export class NestApplication {
       Reflect.getMetadata("params", instance, methodName) ?? [];
     console.log("🚀 ~ NestApplication ~ paramsMetaData:", paramsMetaData);
     return paramsMetaData.map((paramsMetaDataItem) => {
-      const { key, data } = paramsMetaDataItem;
-
+      const { key, data, factory } = paramsMetaDataItem;
+      // 临时实现上下文
+      const ctx = {
+        switchToHttp: () => {
+          return {
+            getRequest: () => req,
+            getResponse: () => res,
+            getNext: () => next,
+            getData: () => data,
+          };
+        },
+      };
       switch (key) {
         case "Req":
         case "Request":
@@ -148,6 +162,8 @@ export class NestApplication {
           return res;
         case "Next":
           return next;
+        case "DecoratorFactory":
+          return factory(data, ctx);
         default:
           return null;
       }
