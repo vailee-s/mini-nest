@@ -1,6 +1,7 @@
-import { AppController } from "./app.controller";
-import { UserController } from "./user.controller";
-import { Module } from "./@nestjs/common";
+import { AppController } from './app.controller';
+import { UserController } from './user.controller';
+import { Module } from './@nestjs/common';
+import { LoggerService, UseValueService } from './logger.service';
 
 /**
  * @module 是一个装饰器，用来定义一个模块
@@ -10,6 +11,12 @@ import { Module } from "./@nestjs/common";
 @Module({
   // imports: [],
   controllers: [AppController, UserController],
-  // providers: [],
+  providers: [
+    LoggerService,
+    {
+      provide: 'String_Token',
+      useValue: new UseValueService(),
+    },
+  ],
 })
 export class AppModule {}

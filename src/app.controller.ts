@@ -1,4 +1,5 @@
-import { Controller, Get } from "./@nestjs/common";
+import { Controller, Get } from './@nestjs/common';
+import { LoggerService } from './logger.service';
 
 /**
  * @Controller 也是一个装饰器，用于定义控制器
@@ -8,8 +9,10 @@ import { Controller, Get } from "./@nestjs/common";
 
 @Controller()
 export class AppController {
+  constructor(private loggerService: LoggerService) {}
   @Get()
   getHello(): string {
-    return "Hello World!";
+    this.loggerService.log('hello world');
+    return 'Hello World!';
   }
 }

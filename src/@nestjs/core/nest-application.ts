@@ -1,13 +1,13 @@
-import "reflect-metadata";
+import 'reflect-metadata';
 import express, {
   Express,
   Request as ExpressRequest,
   Response as ExpressResponse,
   NextFunction,
-} from "express";
+} from 'express';
 
-import { Logger } from "./logger";
-import path from "path";
+import { Logger } from './logger';
+import path from 'path';
 
 export class NestApplication {
   // 在内部私有化一个Express实例
@@ -16,7 +16,7 @@ export class NestApplication {
     this.app.use(express.json()); //json格式请求体对象放在req.body中
     this.app.use(express.urlencoded({ extended: true })); // form格式请求体对象放在req.body中
     this.app.use((req, res, next) => {
-      req.user = { name: "zhangsan", age: 18 };
+      req.user = { name: 'zhangsan', age: 18 };
       next();
     });
   }
@@ -26,15 +26,17 @@ export class NestApplication {
   }
   async init() {
     // 取出模块的控制器，然后做好路由的映射
-    const controllers = Reflect.getMetadata("controllers", this.module) || [];
+    const controllers = Reflect.getMetadata('controllers', this.module) || [];
     // console.log("🚀 ~ NestApplication ~ init ~ controllers:", controllers);
-    Logger.log(`AppModule dependencies initialized`, "InstanceLoader");
+    Logger.log(`AppModule dependencies initialized`, 'InstanceLoader');
     for (const Controller of controllers) {
+      // 解析出控制器的依赖
+      const dependencies = this.resolveDependencies(Controller);
       // 创建每个控制器的实例
       const controller = new Controller();
       // 获取控制器的路径前缀
-      const prefix = Reflect.getMetadata("prefix", Controller) || "/";
-      Logger.log(`${Controller.name} {${prefix}}`, "RoutesResolver");
+      const prefix = Reflect.getMetadata('prefix', Controller) || '/';
+      Logger.log(`${Controller.name} {${prefix}}`, 'RoutesResolver');
       // 遍历类的原型上的方法名
       const controllerPrototype = Controller.prototype;
       for (const methodName of Object.getOwnPropertyNames(
@@ -43,21 +45,21 @@ export class NestApplication {
         // 获取原型上的方法 index
         const method = controllerPrototype[methodName];
         // 获取方法名
-        const httpMethod = Reflect.getMetadata("method", method);
+        const httpMethod = Reflect.getMetadata('method', method);
         // 取得此函数上绑定的路径的元数据
-        const pathMetadata = Reflect.getMetadata("path", method);
-        const redirectUrlMetadata = Reflect.getMetadata("redirectUrl", method);
+        const pathMetadata = Reflect.getMetadata('path', method);
+        const redirectUrlMetadata = Reflect.getMetadata('redirectUrl', method);
 
         const redirectStatusCodeMetadata = Reflect.getMetadata(
-          "redirectStatusCode",
+          'redirectStatusCode',
           method
         );
-        const statusCodeMetadata = Reflect.getMetadata("statusCode", method);
-        const headersMetadata = Reflect.getMetadata("headers", method) ?? [];
+        const statusCodeMetadata = Reflect.getMetadata('statusCode', method);
+        const headersMetadata = Reflect.getMetadata('headers', method) ?? [];
 
         if (!httpMethod) continue;
         // 拼接路径
-        const routePath = path.posix.join("/", prefix, pathMetadata);
+        const routePath = path.posix.join('/', prefix, pathMetadata);
         // 配置路由 当客户端以httpMethod请求routePath时，执行此函数
         this.app[httpMethod.toLowerCase()](
           routePath,
@@ -82,7 +84,7 @@ export class NestApplication {
             }
             if (statusCodeMetadata) {
               res.statusCode = statusCodeMetadata;
-            } else if (httpMethod === "POST") {
+            } else if (httpMethod === 'POST') {
               res.statusCode = 201;
             }
 
@@ -107,15 +109,23 @@ export class NestApplication {
       }
     }
   }
+  private resolveDependencies(Controller: any) {
+    const paramsMetaData = Reflect.getMetadata('params', Controller) ?? [];
+    // console.log("🚀 ~ NestApplication ~ resolveDependencies ~ paramsMetaData:", paramsMetaData)
+    const dependencies = paramsMetaData.filter(paramsMetaDataItem => {
+      const { key } = paramsMetaDataItem;
+      return key === 'Inject';
+    });
+  }
 
   private getRespomseMetadata(controller: any, methodName: string) {
     const paramsMetaData =
-      Reflect.getMetadata("params", controller, methodName) || [];
+      Reflect.getMetadata('params', controller, methodName) || [];
 
     // 参数装饰器 existingParams中的data可能是空值，需要过滤掉
-    return paramsMetaData.filter(Boolean).find((paramsMetaDataItem) => {
+    return paramsMetaData.filter(Boolean).find(paramsMetaDataItem => {
       const { key } = paramsMetaDataItem;
-      return key === "Res" || key === "Response" || key === "Next";
+      return key === 'Res' || key === 'Response' || key === 'Next';
     });
   }
   private resolveParams(
@@ -126,9 +136,9 @@ export class NestApplication {
     next: NextFunction
   ) {
     const paramsMetaData =
-      Reflect.getMetadata("params", instance, methodName) ?? [];
-    console.log("🚀 ~ NestApplication ~ paramsMetaData:", paramsMetaData);
-    return paramsMetaData.map((paramsMetaDataItem) => {
+      Reflect.getMetadata('params', instance, methodName) ?? [];
+    console.log('🚀 ~ NestApplication ~ paramsMetaData:', paramsMetaData);
+    return paramsMetaData.map(paramsMetaDataItem => {
       const { key, data, factory } = paramsMetaDataItem;
       // 临时实现上下文
       const ctx = {
@@ -142,27 +152,27 @@ export class NestApplication {
         },
       };
       switch (key) {
-        case "Req":
-        case "Request":
+        case 'Req':
+        case 'Request':
           return req;
-        case "Query":
+        case 'Query':
           return data ? req.query[data] : req.query;
-        case "Headers":
+        case 'Headers':
           return data ? req.headers[data] : req.headers;
-        case "Session":
+        case 'Session':
           return data ? req.session[data] : req.session;
-        case "Ip":
+        case 'Ip':
           return req.ip;
-        case "Param":
+        case 'Param':
           return data ? req.params[data] : req.params;
-        case "Body":
+        case 'Body':
           return data ? req.body[data] : req.body;
-        case "Response":
-        case "Res":
+        case 'Response':
+        case 'Res':
           return res;
-        case "Next":
+        case 'Next':
           return next;
-        case "DecoratorFactory":
+        case 'DecoratorFactory':
           return factory(data, ctx);
         default:
           return null;
@@ -175,7 +185,7 @@ export class NestApplication {
     this.app.listen(port, () => {
       Logger.log(
         `Nest application successfully started on port ${port}`,
-        "NestApplication"
+        'NestApplication'
       );
     });
   }
