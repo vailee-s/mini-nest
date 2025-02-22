@@ -4,3 +4,4 @@ export * from "./http-methods.decorator";
 export * from "./param.decorator";
 export * from "./injectable.decorator";
 export * from "./inject.decorator";
+export * from "./constants";

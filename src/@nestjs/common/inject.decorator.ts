@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { INJECTE_TOKENS } from "./constants";
 
 // @Injectable() // 将类标记为可注入的
 
@@ -10,9 +11,9 @@ export function Inject(token: string): ParameterDecorator {
   ) => {
     // 获取类的构造函数
     const existingInjectedTokens =
-      Reflect.getMetadata("injectTokens", target) ?? [];
+      Reflect.getMetadata(INJECTE_TOKENS, target) ?? [];
     existingInjectedTokens[parameterIndex] = token;
     // 将类的构造函数标记为可注入的
-    Reflect.defineMetadata("injectTokens", existingInjectedTokens, target);
+    Reflect.defineMetadata(INJECTE_TOKENS, existingInjectedTokens, target);
   };
 }

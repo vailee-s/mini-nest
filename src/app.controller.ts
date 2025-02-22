@@ -17,6 +17,7 @@ export class AppController {
   @Get()
   getHello(): string {
     this.loggerService.log("hello world");
+    this.useValueService.log("hello world");
     return "Hello World!";
   }
 }
