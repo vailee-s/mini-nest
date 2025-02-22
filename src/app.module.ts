@@ -1,7 +1,11 @@
-import { AppController } from './app.controller';
-import { UserController } from './user.controller';
-import { Module } from './@nestjs/common';
-import { LoggerService, UseValueService } from './logger.service';
+import { AppController } from "./app.controller";
+import { UserController } from "./user.controller";
+import { Module } from "./@nestjs/common";
+import {
+  LoggerService,
+  UseValueService,
+  UseFactoryService,
+} from "./logger.service";
 
 /**
  * @module 是一个装饰器，用来定义一个模块
@@ -12,10 +16,25 @@ import { LoggerService, UseValueService } from './logger.service';
   // imports: [],
   controllers: [AppController, UserController],
   providers: [
-    LoggerService,
     {
-      provide: 'String_Token',
-      useValue: new UseValueService(),
+      provide: "SUFFIX",
+      useValue: "Hello World!!",
+    },
+    // LoggerService, // 等价于useClass
+    {
+      provide: LoggerService,
+      useClass: LoggerService,
+    },
+    {
+      provide: "String_Token",
+      useValue: new UseValueService("prefix"),
+    },
+    {
+      provide: "Factory_Token",
+      inject: ["Factory_Token1", "SUFFIX"],
+      useFactory: (a, b) => {
+        return new UseFactoryService(a, b);
+      },
     },
   ],
 })

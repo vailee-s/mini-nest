@@ -1,6 +1,10 @@
 import { Inject } from "./@nestjs/common";
 import { Controller, Get } from "./@nestjs/common";
-import { LoggerService, UseValueService } from "./logger.service";
+import {
+  LoggerService,
+  UseValueService,
+  UseFactoryService,
+} from "./logger.service";
 
 /**
  * @Controller 也是一个装饰器，用于定义控制器
@@ -12,12 +16,14 @@ import { LoggerService, UseValueService } from "./logger.service";
 export class AppController {
   constructor(
     private loggerService: LoggerService,
-    @Inject("String_Token") private useValueService: UseValueService
+    @Inject("String_Token") private useValueService: UseValueService,
+    @Inject("Factory_Token") private useFactoryService: UseFactoryService
   ) {}
   @Get()
   getHello(): string {
     this.loggerService.log("hello world");
     this.useValueService.log("hello world");
+    this.useFactoryService.log("hello world");
     return "Hello World!";
   }
 }

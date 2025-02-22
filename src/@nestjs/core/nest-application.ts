@@ -14,6 +14,9 @@ import { DESIGN_PARAMTYPES, INJECTE_TOKENS } from "../common";
 export class NestApplication {
   // 在内部私有化一个Express实例
   private readonly app: Express = express();
+  // 接收所有的providers
+  private readonly providers = new Map();
+
   constructor(protected readonly module) {
     this.app.use(express.json()); //json格式请求体对象放在req.body中
     this.app.use(express.urlencoded({ extended: true })); // form格式请求体对象放在req.body中
@@ -21,6 +24,7 @@ export class NestApplication {
       req.user = { name: "zhangsan", age: 18 };
       next();
     });
+    this.initProviders();
   }
 
   use(middleware: any) {
@@ -29,7 +33,6 @@ export class NestApplication {
   async init() {
     // 取出模块的控制器，然后做好路由的映射
     const controllers = Reflect.getMetadata("controllers", this.module) || [];
-    // console.log("🚀 ~ NestApplication ~ init ~ controllers:", controllers);
     Logger.log(`AppModule dependencies initialized`, "InstanceLoader");
     for (const Controller of controllers) {
       // 解析出控制器的依赖
@@ -103,13 +106,32 @@ export class NestApplication {
             }
           }
         );
-        // console.log(
-        //   "🚀 ~ NestApplication ~ init ~ metadata:",
-        //   metadata,
-        //   methodName
-        // );
       }
     }
+  }
+  private initProviders() {
+    const providers = Reflect.getMetadata("providers", this.module) ?? [];
+    providers.forEach((provider) => {
+      // 如果是useClass，就实例化
+      if (provider.provide && provider.useClass) {
+        const dependencies = this.resolveDependencies(provider.useClass);
+        const classInstance = new provider.useClass(...dependencies);
+        this.providers.set(provider.provide, classInstance);
+        return;
+      } else if (provider.provide && provider.useValue) {
+        this.providers.set(provider.provide, provider.useValue);
+      } else if (provider.provide && provider.useFactory) {
+        const inject = provider.inject ?? [];
+        this.providers.set(
+          provider.provide,
+          provider.useFactory(
+            ...inject.map((token) => this.getProviderByToken(token))
+          )
+        );
+      } else {
+        this.providers.set(provider.provide, new provider());
+      }
+    });
   }
   private resolveDependencies(Controller: any) {
     const injectedTokens =
@@ -117,19 +139,14 @@ export class NestApplication {
     const constructorParams =
       Reflect.getMetadata(DESIGN_PARAMTYPES, Controller) ?? [];
     return constructorParams.map((constructorParam, index) => {
-      // const token = injectedTokens[index];
-      // if (token) {
-      //   return token;
-      // }
-      // return constructorParam;
-      if (index === 0) {
-        return new LoggerService();
-      } else {
-        return new UseValueService();
-      }
+      // 把每个param中的token换成对应的provider
+
+      return this.getProviderByToken(injectedTokens[index] ?? constructorParam);
     });
   }
-
+  private getProviderByToken(token: any) {
+    return this.providers.get(token) ?? token;
+  }
   private getRespomseMetadata(controller: any, methodName: string) {
     const paramsMetaData =
       Reflect.getMetadata("params", controller, methodName) || [];
@@ -149,7 +166,6 @@ export class NestApplication {
   ) {
     const paramsMetaData =
       Reflect.getMetadata("params", instance, methodName) ?? [];
-    console.log("🚀 ~ NestApplication ~ paramsMetaData:", paramsMetaData);
     return paramsMetaData.map((paramsMetaDataItem) => {
       const { key, data, factory } = paramsMetaDataItem;
       // 临时实现上下文
