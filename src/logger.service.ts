@@ -1,5 +1,10 @@
 import { Injectable, Inject } from "./@nestjs/common";
 @Injectable()
+export class LoggerClassService {
+  log(message: string) {
+    console.log("LoggerClassService", message);
+  }
+}
 export class LoggerService {
   log(message: string) {
     console.log("LoggerService", message);

@@ -4,6 +4,7 @@ import {
   LoggerService,
   UseValueService,
   UseFactoryService,
+  LoggerClassService,
 } from "./logger.service";
 
 /**
@@ -15,12 +16,14 @@ import {
 @Controller()
 export class AppController {
   constructor(
+    private loggerClassService: LoggerClassService,
     private loggerService: LoggerService,
     @Inject("String_Token") private useValueService: UseValueService,
     @Inject("Factory_Token") private useFactoryService: UseFactoryService
   ) {}
   @Get()
   getHello(): string {
+    this.loggerClassService.log("hello world");
     this.loggerService.log("hello world");
     this.useValueService.log("hello world");
     this.useFactoryService.log("hello world");

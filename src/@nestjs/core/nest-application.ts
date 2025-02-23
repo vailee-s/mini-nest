@@ -109,29 +109,74 @@ export class NestApplication {
       }
     }
   }
+  // provider注册流程
   private initProviders() {
+    // 获取模块导入元数据
+    const imports = Reflect.getMetadata("imports", this.module) ?? [];
+    imports.forEach((importModule) => {
+      const importedProviders =
+        Reflect.getMetadata("providers", importModule) ?? [];
+      importedProviders.forEach((provider) => {
+        this.addProvider(provider);
+      });
+    });
+    // 获取自身的provider元数据
     const providers = Reflect.getMetadata("providers", this.module) ?? [];
     providers.forEach((provider) => {
-      // 如果是useClass，就实例化
-      if (provider.provide && provider.useClass) {
-        const dependencies = this.resolveDependencies(provider.useClass);
-        const classInstance = new provider.useClass(...dependencies);
-        this.providers.set(provider.provide, classInstance);
-        return;
-      } else if (provider.provide && provider.useValue) {
-        this.providers.set(provider.provide, provider.useValue);
-      } else if (provider.provide && provider.useFactory) {
-        const inject = provider.inject ?? [];
-        this.providers.set(
-          provider.provide,
-          provider.useFactory(
-            ...inject.map((token) => this.getProviderByToken(token))
-          )
-        );
-      } else {
-        this.providers.set(provider.provide, new provider());
-      }
+      this.addProvider(provider);
     });
+
+    // const providers = Reflect.getMetadata("providers", this.module) ?? [];
+    // providers.forEach((provider) => {
+    //   // 如果是useClass，就实例化
+    //   if (provider.provide && provider.useClass) {
+    //     const dependencies = this.resolveDependencies(provider.useClass);
+    //     const classInstance = new provider.useClass(...dependencies);
+    //     this.providers.set(provider.provide, classInstance);
+    //     return;
+    //   } else if (provider.provide && provider.useValue) {
+    //     this.providers.set(provider.provide, provider.useValue);
+    //   } else if (provider.provide && provider.useFactory) {
+    //     const inject = provider.inject ?? [];
+    //     this.providers.set(
+    //       provider.provide,
+    //       provider.useFactory(
+    //         ...inject.map((token) => this.getProviderByToken(token))
+    //       )
+    //     );
+    //   } else {
+    //     this.providers.set(provider.provide, new provider());
+    //   }
+    // });
+  }
+  private addProvider(provider: any) {
+    // 避免重复添加
+    const injectToken = provider.provide ?? provider;
+    if (this.providers.has(injectToken)) {
+      return;
+    }
+    if (provider.provide && provider.useClass) {
+      // 实例化
+      const Clazz = provider.useClass;
+      const dependencies = this.resolveDependencies(Clazz);
+      const classInstance = new Clazz(...dependencies);
+      this.providers.set(provider.provide, classInstance);
+    } else if (provider.provide && provider.useValue) {
+      // 直接赋值
+      this.providers.set(provider.provide, provider.useValue);
+    } else if (provider.provide && provider.useFactory) {
+      // 工厂函数
+      const inject = provider.inject ?? [];
+      const injectValue = inject.map((token) => this.getProviderByToken(token));
+      // 执行工厂函数，获取返回值
+      const value = provider.useFactory(...injectValue);
+      this.providers.set(provider.provide, value);
+    } else {
+      // 普通类
+      const dependencies = this.resolveDependencies(provider);
+      const value = new provider(...dependencies);
+      this.providers.set(provider, value);
+    }
   }
   private resolveDependencies(Controller: any) {
     const injectedTokens =
