@@ -109,16 +109,47 @@ export class NestApplication {
       }
     }
   }
+  private registerProviderFromModule(importModule: any) {
+    const importedProviders =
+      Reflect.getMetadata("providers", importModule) ?? [];
+    // 有可能导入的模块只导出了一部分provider，所以需要通过export过滤掉
+    const exportedProviders =
+      Reflect.getMetadata("exports", importModule) ?? [];
+
+    // exportedProviders 可能是一个模块，也可能是一个provider
+    exportedProviders.forEach((exportedProvider) => {
+      if (this.isModule(exportedProvider)) {
+        this.registerProviderFromModule(exportedProvider);
+      } else {
+        const provider = importedProviders.find(
+          (importedProvider) =>
+            importedProvider === exportedProvider ||
+            importedProvider.provide === exportedProvider
+        );
+        console.log(
+          "🚀 ~ NestApplication ~ imports.forEach ~ provider:",
+          provider
+        );
+
+        if (provider) {
+          this.addProvider(provider);
+        }
+      }
+    });
+  }
+  private isModule(exportedProvider: any) {
+    return (
+      exportedProvider &&
+      exportedProvider instanceof Function &&
+      Reflect.getMetadata("isModule", exportedProvider)
+    );
+  }
   // provider注册流程
   private initProviders() {
     // 获取模块导入元数据
     const imports = Reflect.getMetadata("imports", this.module) ?? [];
     imports.forEach((importModule) => {
-      const importedProviders =
-        Reflect.getMetadata("providers", importModule) ?? [];
-      importedProviders.forEach((provider) => {
-        this.addProvider(provider);
-      });
+      this.registerProviderFromModule(importModule);
     });
     // 获取自身的provider元数据
     const providers = Reflect.getMetadata("providers", this.module) ?? [];

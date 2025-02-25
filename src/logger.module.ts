@@ -29,6 +29,7 @@ import {
       },
     },
   ],
+  // exports是providers的子集，它定义了哪些provider可以被其他模块使用
   exports: ["SUFFIX", LoggerService, "String_Token", "Factory_Token"],
 })
 export class LoggerModule {}
