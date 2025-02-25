@@ -152,10 +152,10 @@ export class NestApplication {
       this.registerProviderFromModule(importModule);
     });
     // 获取自身的provider元数据
-    const providers = Reflect.getMetadata("providers", this.module) ?? [];
-    providers.forEach((provider) => {
-      this.addProvider(provider);
-    });
+    // const providers = Reflect.getMetadata("providers", this.module) ?? [];
+    // providers.forEach((provider) => {
+    //   this.addProvider(provider);
+    // });
 
     // const providers = Reflect.getMetadata("providers", this.module) ?? [];
     // providers.forEach((provider) => {
