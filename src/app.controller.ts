@@ -1,5 +1,5 @@
-import { Inject } from "./@nestjs/common";
-import { Controller, Get } from "./@nestjs/common";
+import { Inject } from "@nestjs//common";
+import { Controller, Get } from "@nestjs//common";
 
 import { CommonService } from "./common.service";
 /**

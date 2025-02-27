@@ -1,6 +1,6 @@
 import { AppController } from "./app.controller";
 import { UserController } from "./user.controller";
-import { Module } from "./@nestjs/common";
+import { Module } from "@nestjs//common";
 import { LoggerModule } from "./logger.module";
 import { CoreModule } from "./core.module";
 

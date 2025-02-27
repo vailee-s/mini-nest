@@ -15,7 +15,7 @@ import {
   Body,
   Response,
   Next,
-} from "./@nestjs/common";
+} from "@nestjs//common";
 import {
   Request as ExpressRequest,
   Response as ExpressResponse,
@@ -60,11 +60,7 @@ export class UserController {
     return "Hello World!";
   }
   @Get("session")
-  handleSession(
-    @Session() session: any,
-    @Session("pageView") pageView: string
-  ): string {
-    console.log("🚀 ~ UserController ~ handleQuery ~ accept:", pageView);
+  handleSession(@Session() session: any): string {
     console.log("session", session);
     if (session.pageView) {
       session.pageView++;

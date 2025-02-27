@@ -4,6 +4,11 @@
     "emitDecoratorMetadata": true,
     "target": "ESNext",
     "moduleResolution": "nodenext",
-    "module": "NodeNext"
+    "module": "NodeNext",
+    "baseUrl": "./",
+    "outDir": "./dist",
+    "paths": {
+      "@nestjs*": ["src/@nestjs/*"]
+    }
   }
 }

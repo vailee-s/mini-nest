@@ -1,4 +1,4 @@
-import { Module } from "./@nestjs/common";
+import { Module } from "@nestjs//common";
 import {
   LoggerClassService,
   LoggerService,
@@ -23,7 +23,7 @@ import {
     },
     {
       provide: "Factory_Token",
-      inject: ["Factory_Token1", "SUFFIX"],
+      // inject: ["Factory_Token1", "SUFFIX"],
       useFactory: (a, b) => {
         return new UseFactoryService(a, b);
       },
