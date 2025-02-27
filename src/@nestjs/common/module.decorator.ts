@@ -17,3 +17,9 @@ export function Module(metadata: ModuleMetadata): ClassDecorator {
     Reflect.defineMetadata("imports", metadata.imports, target);
   };
 }
+
+export function defineModule(nestModule, targets = []) {
+  targets.forEach((target) => {
+    Reflect.defineMetadata("nest  Module", nestModule, target);
+  });
+}
