@@ -1,7 +1,7 @@
-import { Inject } from "@nestjs/common";
-import { Controller, Get } from "@nestjs/common";
+import { Inject } from "./@nestjs/common";
+import { Controller, Get } from "./@nestjs/common";
 
-import { CommonService } from "./common.service";
+import { OtherService } from "./other.service";
 /**
  * @Controller 也是一个装饰器，用于定义控制器
  * 控制器是处理传入HTTP请求的核心组件，每个控制器负责处理特定的请求路径和对应的http方法
@@ -10,10 +10,10 @@ import { CommonService } from "./common.service";
 
 @Controller()
 export class AppController {
-  constructor(private commonService: CommonService) {}
+  constructor(private otherService: OtherService) {}
   @Get()
   getHello(): string {
-    this.commonService.log("hello world");
+    this.otherService.log("hello world");
 
     return "Hello World!";
   }

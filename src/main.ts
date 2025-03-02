@@ -1,5 +1,5 @@
 // 创建nestjs应用实例
-import { NestFactory } from "@nestjs/core";
+import { NestFactory } from "./@nestjs/core";
 import { AppModule } from "./app.module";
 import session from "express-session";
 

@@ -15,7 +15,13 @@ export class NestApplication {
   // 在内部私有化一个Express实例
   private readonly app: Express = express();
   // 接收所有的providers
-  private readonly providers = new Map();
+  // private readonly providers = new Map();
+  // 去掉之前接收所有的providers，改为接收一个模块，
+  // 在此处保存所有的provider的实例key就是token，value就是实例， 存实例
+  private readonly providerInstances = new Map();
+  private readonly globalProviderInstances = new Set(); // 全局的provider的token集合
+  // 记录每个模块中哪些有provider的token,存关系
+  private readonly moduleProvider = new Map();
 
   constructor(protected readonly module) {
     this.app.use(express.json()); //json格式请求体对象放在req.body中
@@ -109,17 +115,21 @@ export class NestApplication {
       }
     }
   }
-  private registerProviderFromModule(importModule: any) {
+  private registerProviderFromModule(nestModule: any, ...parentModule) {
+    const globalProviders = Reflect.getMetadata("global", nestModule) ?? [];
     const importedProviders =
-      Reflect.getMetadata("providers", importModule) ?? [];
+      Reflect.getMetadata("providers", nestModule) ?? [];
     // 有可能导入的模块只导出了一部分provider，所以需要通过export过滤掉
-    const exportedProviders =
-      Reflect.getMetadata("exports", importModule) ?? [];
+    const exportedProviders = Reflect.getMetadata("exports", nestModule) ?? [];
 
     // exportedProviders 可能是一个模块，也可能是一个provider
     exportedProviders.forEach((exportedProvider) => {
       if (this.isModule(exportedProvider)) {
-        this.registerProviderFromModule(exportedProvider);
+        this.registerProviderFromModule(
+          exportedProvider,
+          nestModule,
+          ...parentModule
+        );
       } else {
         const provider = importedProviders.find(
           (importedProvider) =>
@@ -132,7 +142,9 @@ export class NestApplication {
         );
 
         if (provider) {
-          this.addProvider(provider);
+          [module, ...parentModule].forEach((module) => {
+            this.addProvider(provider, module, globalProviders);
+          });
         }
       }
     });
@@ -149,13 +161,13 @@ export class NestApplication {
     // 获取模块导入元数据
     const imports = Reflect.getMetadata("imports", this.module) ?? [];
     imports.forEach((importModule) => {
-      this.registerProviderFromModule(importModule);
+      this.registerProviderFromModule(importModule, this.module);
     });
     // 获取自身的provider元数据
-    // const providers = Reflect.getMetadata("providers", this.module) ?? [];
-    // providers.forEach((provider) => {
-    //   this.addProvider(provider);
-    // });
+    const providers = Reflect.getMetadata("providers", this.module) ?? [];
+    providers.forEach((provider) => {
+      this.addProvider(provider, this.module);
+    });
 
     // const providers = Reflect.getMetadata("providers", this.module) ?? [];
     // providers.forEach((provider) => {
@@ -180,33 +192,46 @@ export class NestApplication {
     //   }
     // });
   }
-  private addProvider(provider: any) {
-    // 避免重复添加
-    const injectToken = provider.provide ?? provider;
-    if (this.providers.has(injectToken)) {
-      return;
+  private addProvider(provider: any, module: any, global = false) {
+    // 设置这个module对应的provider的token
+    const providers = global
+      ? this.globalProviderInstances
+      : this.moduleProvider.get(module) ?? new Set();
+    if (!this.moduleProvider.has(module)) {
+      this.moduleProvider.set(module, providers);
     }
+    // 避免重复添加
+    // const injectToken = provider.provide ?? provider;
+    // if (this.providers.has(injectToken)) {
+    //   return;
+    // }
     if (provider.provide && provider.useClass) {
       // 实例化
       const Clazz = provider.useClass;
       const dependencies = this.resolveDependencies(Clazz);
       const classInstance = new Clazz(...dependencies);
-      this.providers.set(provider.provide, classInstance);
+      this.providerInstances.set(provider.provide, classInstance);
+      providers.add(provider.provide);
     } else if (provider.provide && provider.useValue) {
       // 直接赋值
-      this.providers.set(provider.provide, provider.useValue);
+      this.providerInstances.set(provider.provide, provider.useValue);
+      providers.add(provider.provide);
     } else if (provider.provide && provider.useFactory) {
       // 工厂函数
       const inject = provider.inject ?? [];
-      const injectValue = inject.map((token) => this.getProviderByToken(token));
+      const injectValue = inject.map((token) =>
+        this.getProviderByToken(token, module)
+      );
       // 执行工厂函数，获取返回值
       const value = provider.useFactory(...injectValue);
-      this.providers.set(provider.provide, value);
+      this.providerInstances.set(provider.provide, value);
+      providers.add(provider.provide);
     } else {
       // 普通类
       const dependencies = this.resolveDependencies(provider);
       const value = new provider(...dependencies);
-      this.providers.set(provider, value);
+      this.providerInstances.set(provider, value);
+      providers.add(provider);
     }
   }
   private resolveDependencies(Controller: any) {
@@ -214,14 +239,27 @@ export class NestApplication {
       Reflect.getMetadata(INJECTE_TOKENS, Controller) ?? [];
     const constructorParams =
       Reflect.getMetadata(DESIGN_PARAMTYPES, Controller) ?? [];
-    return constructorParams.map((constructorParam, index) => {
-      // 把每个param中的token换成对应的provider
 
-      return this.getProviderByToken(injectedTokens[index] ?? constructorParam);
+    return constructorParams.map((constructorParam, index) => {
+      const module = Reflect.getMetadata("nestModule", Controller);
+      // 把每个param中的token换成对应的provider
+      return this.getProviderByToken(
+        injectedTokens[index] ?? constructorParam,
+        module
+      );
     });
   }
-  private getProviderByToken(token: any) {
-    return this.providers.get(token) ?? token;
+  private getProviderByToken(injectedToken: any, module: any) {
+    // return this.providers.get(injectedToken) ?? injectedToken;
+    // 通过token在特定模块下找对应的provider
+    if (
+      this.moduleProvider.get(module)?.has(injectedToken) ||
+      this.globalProviderInstances.has(injectedToken)
+    ) {
+      return this.providerInstances.get(injectedToken);
+    } else {
+      return null;
+    }
   }
   private getRespomseMetadata(controller: any, methodName: string) {
     const paramsMetaData =
