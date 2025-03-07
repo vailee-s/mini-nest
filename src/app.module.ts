@@ -6,6 +6,9 @@ import { CoreModule } from "./core.module";
 import { CommonModule } from "./common.module";
 import { OtherModule } from "./other.module";
 
+import { DynamicConfigModule } from "./dynamicConfig";
+
+import { AppService } from "./app.service";
 /**
  * @Injectable 是一个装饰器，用来定义一个类为可注入的
  * 可注入： 可以被依赖注入器实例化的类
@@ -18,8 +21,16 @@ import { OtherModule } from "./other.module";
  * */
 @Module({
   // imports: [LoggerModule, CoreModule],
-  imports: [CommonModule, OtherModule],
+  imports: [
+    CommonModule,
+    OtherModule,
+    DynamicConfigModule.forRoot({
+      name: "zhangsan",
+      age: 18,
+    }),
+  ],
   controllers: [AppController, UserController],
-  providers: [],
+  providers: [AppService],
+  exports: [AppService],
 })
 export class AppModule {}

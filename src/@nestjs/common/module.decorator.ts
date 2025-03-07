@@ -44,3 +44,6 @@ export function Global() {
     Reflect.defineMetadata("global", true, target);
   };
 }
+export interface DynamicModule extends ModuleMetadata {
+  module: Function;
+}

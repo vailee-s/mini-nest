@@ -9,7 +9,7 @@ import express, {
 import { Logger } from "./logger";
 import path from "path";
 import { LoggerService, UseValueService } from "../../logger.service";
-import { DESIGN_PARAMTYPES, INJECTE_TOKENS } from "../common";
+import { defineModule, DESIGN_PARAMTYPES, INJECTE_TOKENS } from "../common";
 
 export class NestApplication {
   // 在内部私有化一个Express实例
@@ -161,7 +161,29 @@ export class NestApplication {
     // 获取模块导入元数据
     const imports = Reflect.getMetadata("imports", this.module) ?? [];
     imports.forEach((importModule) => {
-      this.registerProviderFromModule(importModule, this.module);
+      if ("module" in importModule) {
+        // 动态模块
+        const { module, providers, controllers, exports } = importModule;
+        // 合并旧的provider和新的provider
+        const oldProviders = Reflect.getMetadata("providers", module) ?? [];
+        const newProviders = [...oldProviders, ...(providers ?? [])];
+        const oldExports = Reflect.getMetadata("exports", module) ?? [];
+        const newExports = [...oldExports, ...(exports ?? [])];
+        const oldControllers = Reflect.getMetadata("controllers", module) ?? [];
+        const newControllers = [...oldControllers, ...(controllers ?? [])];
+        defineModule(module, newControllers);
+        defineModule(module, newProviders);
+        console.log("---->", newExports, newProviders);
+
+        Reflect.defineMetadata("controllers", newControllers, module);
+        Reflect.defineMetadata("providers", newProviders, module);
+        Reflect.defineMetadata("exports", newExports, module);
+
+        this.registerProviderFromModule(module, this.module);
+      } else {
+        // 普通模块
+        this.registerProviderFromModule(importModule, this.module);
+      }
     });
     // 获取自身的provider元数据
     const providers = Reflect.getMetadata("providers", this.module) ?? [];
