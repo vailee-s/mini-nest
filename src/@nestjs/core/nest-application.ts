@@ -30,7 +30,6 @@ export class NestApplication {
       req.user = { name: "zhangsan", age: 18 };
       next();
     });
-    this.initProviders();
   }
 
   use(middleware: any) {
@@ -157,13 +156,19 @@ export class NestApplication {
     );
   }
   // provider注册流程
-  private initProviders() {
+  async initProviders() {
     // 获取模块导入元数据
     const imports = Reflect.getMetadata("imports", this.module) ?? [];
-    imports.forEach((importModule) => {
-      if ("module" in importModule) {
+    for (const importModule of imports) {
+      let importedModeule = importModule;
+      if (importModule instanceof Promise) {
+        importedModeule = await importedModeule;
+      }
+      console.log("importedModeule", importedModeule);
+
+      if ("module" in importedModeule) {
         // 动态模块
-        const { module, providers, controllers, exports } = importModule;
+        const { module, providers, controllers, exports } = importedModeule;
         // 合并旧的provider和新的provider
         const oldProviders = Reflect.getMetadata("providers", module) ?? [];
         const newProviders = [...oldProviders, ...(providers ?? [])];
@@ -173,8 +178,6 @@ export class NestApplication {
         const newControllers = [...oldControllers, ...(controllers ?? [])];
         defineModule(module, newControllers);
         defineModule(module, newProviders);
-        console.log("---->", newExports, newProviders);
-
         Reflect.defineMetadata("controllers", newControllers, module);
         Reflect.defineMetadata("providers", newProviders, module);
         Reflect.defineMetadata("exports", newExports, module);
@@ -182,9 +185,10 @@ export class NestApplication {
         this.registerProviderFromModule(module, this.module);
       } else {
         // 普通模块
-        this.registerProviderFromModule(importModule, this.module);
+        this.registerProviderFromModule(importedModeule, this.module);
       }
-    });
+    }
+
     // 获取自身的provider元数据
     const providers = Reflect.getMetadata("providers", this.module) ?? [];
     providers.forEach((provider) => {
@@ -345,6 +349,7 @@ export class NestApplication {
   }
 
   async listen(port: number): Promise<void> {
+    await this.initProviders();
     await this.init();
     this.app.listen(port, () => {
       Logger.log(
