@@ -164,7 +164,6 @@ export class NestApplication {
       if (importModule instanceof Promise) {
         importedModeule = await importedModeule;
       }
-      console.log("importedModeule", importedModeule);
 
       if ("module" in importedModeule) {
         // 动态模块

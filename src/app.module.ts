@@ -6,7 +6,7 @@ import { CoreModule } from "./core.module";
 import { CommonModule } from "./common.module";
 import { OtherModule } from "./other.module";
 
-import { DynamicConfigModule } from "./dynamicConfig";
+import { DynamicConfigModule } from "./dynamicConfig.module";
 
 import { AppService } from "./app.service";
 /**
