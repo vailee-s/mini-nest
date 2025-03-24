@@ -1,14 +1,20 @@
-import { AppController } from "./app.controller";
-import { UserController } from "./user.controller";
-import { Module } from "./@nestjs/common";
-import { LoggerModule } from "./logger.module";
-import { CoreModule } from "./core.module";
-import { CommonModule } from "./common.module";
-import { OtherModule } from "./other.module";
+import { AppController } from './app.controller';
+import { UserController } from './user.controller';
+import {
+  Module,
+  MiddlewareConsumer,
+  NestModule,
+  RequestMethod,
+} from './@nestjs/common';
+import { LoggerModule } from './logger.module';
+import { CoreModule } from './core.module';
+import { CommonModule } from './common.module';
+import { OtherModule } from './other.module';
 
-import { DynamicConfigModule } from "./dynamicConfig.module";
+import { DynamicConfigModule } from './dynamicConfig.module';
 
-import { AppService } from "./app.service";
+import { AppService } from './app.service';
+import { LoggerMiddleware } from './logger.middleware';
 /**
  * @Injectable 是一个装饰器，用来定义一个类为可注入的
  * 可注入： 可以被依赖注入器实例化的类
@@ -25,7 +31,7 @@ import { AppService } from "./app.service";
     CommonModule,
     OtherModule,
     DynamicConfigModule.forRoot({
-      name: "zhangsan",
+      name: 'zhangsan',
       age: 18,
     }),
   ],
@@ -33,4 +39,13 @@ import { AppService } from "./app.service";
   providers: [AppService],
   exports: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // apply()方法接受一个中间件类，然后将其绑定到应用程序的根路径
+    // forRoutes()方法接受一个字符串，用于指定要应用中间件的路由
+    consumer.apply(LoggerMiddleware).forRoutes({
+      path: '*',
+      method: RequestMethod.ALL,
+    });
+  }
+}
