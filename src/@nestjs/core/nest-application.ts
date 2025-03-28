@@ -38,17 +38,18 @@ export class NestApplication {
       req.user = { name: 'zhangsan', age: 18 };
       next();
     });
-    this.initMiddlewares(); // 初始化中间件
   }
 
   use(middleware: any) {
     this.app.use(middleware);
   }
-  private initMiddlewares() {
+  private async initMiddlewares() {
     // 调用配置中间件的方法，MiddlewareConsumer就是当前的NestApplication实例
     this.module.prototype.configure?.(this);
   }
   apply(...middleware) {
+    defineModule(this.module, middleware);
+
     this.middlewares.push(...middleware);
     return this;
   }
@@ -165,7 +166,9 @@ export class NestApplication {
   }
   private getMiddlewareInstance(middleware: any) {
     if (middleware instanceof Function) {
-      return new middleware();
+      // 解析出控制器的依赖
+      const dependencies = this.resolveDependencies(middleware);
+      return new middleware(...dependencies);
     }
     return middleware;
   }
@@ -404,6 +407,7 @@ export class NestApplication {
 
   async listen(port: number): Promise<void> {
     await this.initProviders();
+    await this.initMiddlewares(); // 初始化中间件
     await this.init();
     this.app.listen(port, () => {
       Logger.log(
